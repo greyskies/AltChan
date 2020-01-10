@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Http;
 using System.Web.Http;
 using AltChanLib;
+using AltChanLib.DataClasses;
 
 namespace AltChan.Controllers
 {
@@ -14,10 +15,10 @@ namespace AltChan.Controllers
         {
             return "Welcome To AltChan Web API - please specify a videoUrl parameter";
         }
-        public List<string> Get(string videoUrl)
+        public List<UrlOption> Get(string videoUrl)
         {
             var dataSource = new DataSource();
-            var urlList = new List<string>();
+            var urlList = new List<UrlOption>();
             try
             {
                 urlList = dataSource.GetPreferredUrls(videoUrl);

@@ -11,9 +11,6 @@ namespace AltChanLib
 {
     public class DataSource
     {
-        //private const string ConnectionStr = @"Server=localhost\SQLEXPRESS01,1433;Database=Science_Blog_Database;User Id=Alex;Password=alex01;";
-        //private const string ConnectionStr = @"Server=mssql7.websitelive.net;Database=greyskies_science_blog_database;User Id=greyskies_alex;Password=m8NYg#xU;";
-
         private readonly string _connectionString;
 
         public DataSource()
@@ -74,11 +71,11 @@ namespace AltChanLib
             }
         }
 
-        public List<string> GetPreferredUrls(string url)
+        public List<UrlOption> GetPreferredUrls(string url)
         {
             using (var connection = new SqlConnection(_connectionString))
             {
-                var retVal = new List<string>();
+                var retVal = new List<UrlOption>();
                 try
                 {
                     connection.Open();
@@ -90,7 +87,11 @@ namespace AltChanLib
                     var reader = channelCommand.ExecuteReader();
                     while (reader.Read())
                     {
-                        retVal.Add(reader.GetString(0));
+                        var videoUrl = reader.GetString(0);
+                        var channel = reader.GetString(1);
+                        var platform = reader.GetString(2);
+
+                        retVal.Add(new UrlOption {Url=videoUrl, Channel=channel, Platform = platform});
                     }
                 }
                 catch (Exception e)
