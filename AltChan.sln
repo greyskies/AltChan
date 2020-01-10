@@ -1,0 +1,37 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29209.62
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AltChan", "AltChan.csproj", "{02F93673-6614-4414-8BB6-BF603411FD32}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AltChanUpdate", "AltChanUpdate\AltChanUpdate.csproj", "{B52AFC4A-16AB-4A4B-8063-3194970A63D2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AltChanLib", "AltChanLib\AltChanLib.csproj", "{E4B7BA0A-0F34-4328-A893-B40CF56D3968}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{02F93673-6614-4414-8BB6-BF603411FD32}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{02F93673-6614-4414-8BB6-BF603411FD32}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{02F93673-6614-4414-8BB6-BF603411FD32}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{02F93673-6614-4414-8BB6-BF603411FD32}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B52AFC4A-16AB-4A4B-8063-3194970A63D2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B52AFC4A-16AB-4A4B-8063-3194970A63D2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B52AFC4A-16AB-4A4B-8063-3194970A63D2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B52AFC4A-16AB-4A4B-8063-3194970A63D2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E4B7BA0A-0F34-4328-A893-B40CF56D3968}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E4B7BA0A-0F34-4328-A893-B40CF56D3968}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E4B7BA0A-0F34-4328-A893-B40CF56D3968}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E4B7BA0A-0F34-4328-A893-B40CF56D3968}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {4D50A740-A4A1-466A-B2E7-AF51D9F61CF5}
+	EndGlobalSection
+EndGlobal
