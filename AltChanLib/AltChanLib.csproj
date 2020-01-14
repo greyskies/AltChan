@@ -74,6 +74,7 @@
     <Compile Include="DataClasses\updated.cs" />
     <Compile Include="DataClasses\UrlOption.cs" />
     <Compile Include="DataClasses\videoId.cs" />
+    <Compile Include="DataClasses\YtApiJsonClasses.cs" />
     <Compile Include="DataSource.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

@@ -108,6 +108,65 @@ namespace AltChanLib
                 return retVal;
             }
         }
+
+        public List<string> GetStagedVideoUrls()
+        {
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                var retVal = new List<string>();
+                try
+                {
+                    connection.Open();
+                    string sql = "select Url from VideoUrlStaging";
+                    var channelCommand = new SqlCommand(sql, connection);
+
+                    var reader = channelCommand.ExecuteReader();
+                    while (reader.Read())
+                    {
+                        var videoUrl = reader.GetString(0);
+                        retVal.Add(videoUrl);
+                    }
+                }
+                catch (Exception e)
+                {
+                    //log error
+                }
+                finally
+                {
+                    if (connection.State != ConnectionState.Closed)
+                    {
+                        connection.Close();
+                    }
+                }
+                return retVal;
+            }
+        }
+
+        public void ClearStagedVideoUrls()
+        {
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                try
+                {
+                    connection.Open();
+                    string sql = "delete VideoUrlStaging";
+                    var channelCommand = new SqlCommand(sql, connection);
+
+                    var reader = channelCommand.ExecuteNonQuery();
+                }
+                catch (Exception e)
+                {
+                    //log error
+                }
+                finally
+                {
+                    if (connection.State != ConnectionState.Closed)
+                    {
+                        connection.Close();
+                    }
+                }
+            }
+        }
     }
 }
 
