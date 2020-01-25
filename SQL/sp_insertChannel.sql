@@ -1,7 +1,11 @@
 USE [AltChan]
 GO
 
-/****** Object:  StoredProcedure [dbo].[InsertChannel]    Script Date: 07/01/2020 16:58:31 ******/
+/****** Object:  StoredProcedure [dbo].[InsertChannel]    Script Date: 18/01/2020 13:46:46 ******/
+DROP PROCEDURE [dbo].[InsertChannel]
+GO
+
+/****** Object:  StoredProcedure [dbo].[InsertChannel]    Script Date: 18/01/2020 13:46:46 ******/
 SET ANSI_NULLS ON
 GO
 
@@ -9,13 +13,15 @@ SET QUOTED_IDENTIFIER ON
 GO
 
 
-CREATE OR ALTER PROCEDURE [dbo].[InsertChannel] 
+
+CREATE   PROCEDURE [dbo].[InsertChannel] 
 (
 	@Platform varchar(255),
 	@Url varchar(255),
 	@UrlId varchar(255),
 	@Title varchar(255),
-	@published dateTime
+	@published dateTime,
+	@Description varchar(max)
 )
 AS
 BEGIN
@@ -34,7 +40,7 @@ declare @channelId int
 select @channelId = Id from [Channel] where Title = @Title
 
 if not exists(select * from [ChannelUrl] where platformId = @platformId and channelId = @channelId)
-	insert into [ChannelUrl] (PlatformId, UrlId, Url, ChannelId, Published, Preference) values (@platformId, @UrlId, @Url, @channelId, @Published, 1)
+	insert into [ChannelUrl] (PlatformId, UrlId, Url, ChannelId, Published, Description, Preference) values (@platformId, @UrlId, @Url, @channelId, @Published, @Description, 1)
 
 select @channelId
 

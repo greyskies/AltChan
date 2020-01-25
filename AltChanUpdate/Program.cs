@@ -8,18 +8,24 @@ using System.Threading.Tasks;
 using System.Xml.Serialization;
 using AltChanLib;
 using AltChanLib.DataClasses;
+using JsonVideoDetails = AltChanLib.DataClasses.JsonVideoDetails;
+using JsonVideoList = AltChanLib.DataClasses.JsonVideoList;
+using JsonVideo = AltChanLib.DataClasses.JsonVideo;
+using JsonChannel = AltChanLib.DataClasses.JsonChannel;
 using Newtonsoft.Json;
 
 namespace AltChanUpdate
 {
     class Program
     {
+        const string apiKey = "&key=AIzaSyBfxp-tRmtzVjIKDtR8FLRnll6Jv9sSUzY";
+
         static void Main(string[] args)
         {
             if (args.Length == 2 && args[0] == "sub" && !string.IsNullOrWhiteSpace(args[1]))
             {
                 var subscriptionPath = args[1]; // @"c:\Projects\AltChanUpdate\subscription_manager.xml";
-                ImportSubscription(subscriptionPath);
+                ImportYouTubeSubscriptionFile(subscriptionPath);
             }
             else
             {
@@ -35,83 +41,131 @@ namespace AltChanUpdate
             {
                 if (url.ToLower().Contains("youtube"))  //can get details from the yt API
                 {
+                    var platform = "YouTube";
                     var linkPrefix = "https://www.youtube.com/watch?v=";
                     var channelPrefix = "https://www.youtube.com/feeds/videos.xml?channel_id=";
                     var videoId = url.Replace(linkPrefix, "");
-                    var apiUrl = $"https://www.googleapis.com/youtube/v3/videos?part=id%2C+snippet&id=" + videoId + "&key=AIzaSyBfxp-tRmtzVjIKDtR8FLRnll6Jv9sSUzY";
+                    var apiUrl = $"https://www.googleapis.com/youtube/v3/videos?part=id%2C+snippet&id={videoId}{apiKey}";
                     var videoJson = GetResponse(apiUrl);
                     if (videoJson != null)
                     {
-                        var jObject = JsonConvert.DeserializeObject<RootObject>(videoJson);
+                        var jObject = JsonConvert.DeserializeObject<JsonVideo.RootObject>(videoJson);
                         var channelId = jObject.items[0].snippet.channelId;
                         var channelUrl = $"{channelPrefix}{channelId}";
-                        ImportChannelData(channelUrl, dataSource);
+                        ImportYouTubeChannelData(channelId, platform, dataSource);
+                        dataSource.ClearStagedVideoUrl(url);
                     }
                 }
             }
-            dataSource.ClearStagedVideoUrls();
+            //dataSource.ClearStagedVideoUrls();
         }
 
-        private static void ImportSubscription(string subscriptionPath)
+        private static void ImportYouTubeSubscriptionFile(string subscriptionPath)
         {
             var dataSource = new DataSource();
-
+            var platform = "YouTube";
+            var channelUrlPrefix = "https://www.youtube.com/feeds/videos.xml?channel_id=";
             var subscriptionText = File.ReadAllText(subscriptionPath);
             subscriptionText =
                 subscriptionText.Replace("<opml version=\"1.1\">", "<?xml version=\"1.0\" encoding=\"utf-8\"?>");
             subscriptionText = subscriptionText.Replace("</opml>", "");
 
-            var subscription = ExtractData<body>(subscriptionText);
+            var subscription = ExtractXmlData<body>(subscriptionText);
 
             foreach (var channelEntry in subscription.bodyoutline[0].outlineoutline)
             {
                 var channelUrl = channelEntry.xmlUrl;
-                ImportChannelData(channelUrl, dataSource);
+                var channelId = channelUrl.Replace(channelUrlPrefix, "");
+                ImportYouTubeChannelData(channelId, platform, dataSource);
             }
         }
 
-        private static void ImportChannelData(string channelUrl, DataSource dataSource)
+        private static void ImportYouTubeChannelData(string channelId, string platform, DataSource dataSource, string stagedUrl = null)
         {
-            var channelXml = GetResponse(channelUrl);
-            if (channelXml != null)
+            const int dateThresholdMonthsBack = 1;
+
+            //channel data via the API with quota check:
+            //var channelUrlPrefix = "https://www.googleapis.com/youtube/v3/channels?part=id%2C+snippet&id=";
+            //var channelUrl = $"{channelUrlPrefix}{channelId}{apiKey}";
+            //var channelResponse = GetResponse(channelUrl);
+            //var channelData = ExtractJsonData<JsonChannel.RootObject>(channelResponse);
+
+            //rather get the channel details via the XML interface because this has no quota check and provides the 15 latest videos
+            var channelUrlPrefix = "https://www.youtube.com/feeds/videos.xml?channel_id=";
+            var channelUrl = $"{channelUrlPrefix}{channelId}";
+            var channelResponse = GetResponse(channelUrl);
+            //fix channel xml to allow deserialization
+            channelResponse = channelResponse.Replace("&", "&#x26;");
+            channelResponse = channelResponse.Replace("xmlns=\"http://www.w3.org/2005/Atom\"", "");
+            channelResponse = channelResponse.Replace("<yt:", "<");
+            channelResponse = channelResponse.Replace("</yt:", "</");
+            channelResponse = channelResponse.Replace("<media:", "<");
+            channelResponse = channelResponse.Replace("</media:", "</");
+            var channelData = ExtractXmlData<feed>(channelResponse);
+            var channel = new Channel(channelData, platform);
+
+            //record videos already included in the channel query
+            var videoIdsAlreadyFetched = channelData.entry.Select(x => x.videoId.Value).ToList();
+            var videoIdsAlreadyInDatabase = dataSource.GetChannelVideoUrls(channelId);
+
+            //get a list of video id's for the channel later than the specified date
+            var threshold = DateTime.Today.AddMonths(-dateThresholdMonthsBack).ToString("yyyy-MM-ddTHH:mm:ssZ");
+            var resultsPerPage = 50;
+            var videoListUrlPrefix = $"https://www.googleapis.com/youtube/v3/search?part=id&channelId=";
+            var channelVideosUrlParams = $"&maxResults={resultsPerPage}"; // &publishedAfter={threshold}";
+            var videoListUrl = $"{videoListUrlPrefix}{channelId}{apiKey}{channelVideosUrlParams}&publishedAfter={threshold}";
+
+            var videoListResponse = GetResponse(videoListUrl);
+            if (videoListResponse != null)
             {
-                //fix channel xml to allow deserialization
-                channelXml = channelXml.Replace("&", "&#x26;");
-                channelXml = channelXml.Replace("xmlns=\"http://www.w3.org/2005/Atom\"", "");
-                channelXml = channelXml.Replace("<yt:", "<");
-                channelXml = channelXml.Replace("</yt:", "</");
-                channelXml = channelXml.Replace("<media:", "<");
-                channelXml = channelXml.Replace("</media:", "</");
+                var channelVideosUrlPrefix = "https://www.googleapis.com/youtube/v3/videos?part=id%2C+snippet&id=";
+                var videoList = ExtractJsonData<JsonVideoList.RootObject>(videoListResponse);
+                var videoIds = videoList.items.Select(x => x.id.videoId).Except(videoIdsAlreadyFetched).Except(videoIdsAlreadyInDatabase).ToList();
 
-                var channel = ExtractData<feed>(channelXml);
-                dataSource.SaveChannel(channel, "YouTube");
-
-                //look for alternative platforms in the video descriptions
-                foreach (var video in channel.entry)
+                //add the Id of the staged video if it is not on the list
+                if (stagedUrl != null && !videoIds.Contains(stagedUrl))
                 {
-                    var description = video.@group.description.Value;
-                    if (description != null)
-                    {
-                        var linkPrefix = "https://www.bitchute.com/video/";
-                        var pos = description.IndexOf(linkPrefix);
-                        if (pos >= 0)
-                        {
-                            var url = description.Substring(pos, 45).Trim().TrimEnd('/');
-                            channel.feedlink[0].href = ""; //clear channel Url
-                            channel.feedchannelId.Value = ""; //clear channel UrlId
+                    videoIds.Add(stagedUrl);
+                }
+                
+                SaveChannelVideos(videoIds, channelVideosUrlPrefix, channel);
 
-                            channel.entry = new List<entry>(new[] {video});
-                            video.entrylink[0].href = url;
-                            video.videoId.Value = url.Replace("linkPrefix", "");
-                            video.@group.community.statistics.views = 0;
-                            dataSource.SaveChannel(channel, "BitChute");
-                        }
+                //get any extra pages required
+                while (videoList.nextPageToken != null && videoList.items.Count > 0)
+                {
+                    var extraPageUrl = $"{videoListUrl}&pageToken={videoList.nextPageToken}";
+                    videoListResponse = GetResponse(extraPageUrl);
+                    if (videoListResponse != null)
+                    {
+                        videoList = ExtractJsonData<JsonVideoList.RootObject>(videoListResponse);
+                        var extraVideoIds = videoList.items.Select(x => x.id.videoId).Except(videoIdsAlreadyFetched).Except(videoIdsAlreadyInDatabase).ToList();
+                        SaveChannelVideos(extraVideoIds, channelVideosUrlPrefix, channel);
                     }
                 }
+
+                dataSource.SaveChannel(channel);
             }
         }
 
-        private static T ExtractData<T>(string xml)
+        private static void SaveChannelVideos(List<string> videoIds, string channelVideosUrlPrefix, Channel channel)
+        {
+            var videosCsv = string.Join("%2C+", videoIds);
+            var channelVideosUrl = $"{channelVideosUrlPrefix}{videosCsv}{apiKey}";
+            var channelVideosResponse = GetResponse(channelVideosUrl);
+            if (channelVideosResponse != null)
+            {
+                var channelVideos = ExtractJsonData<JsonVideoDetails.RootObject>(channelVideosResponse);
+                channel.AddVideos(channelVideos?.items);
+            }
+        }
+
+        private static T ExtractJsonData<T>(string channelHeaderResponse)
+        {
+            var channelRoot = JsonConvert.DeserializeObject<T>(channelHeaderResponse);
+            return channelRoot;
+        }
+
+        private static T ExtractXmlData<T>(string xml)
         {
             var sr = new StringReader(xml);
             var ser = new XmlSerializer(typeof(T));

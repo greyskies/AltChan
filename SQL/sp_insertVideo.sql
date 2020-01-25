@@ -1,16 +1,18 @@
 USE [AltChan]
 GO
 
-/****** Object:  StoredProcedure [dbo].[InsertVideo]    Script Date: 07/01/2020 16:59:18 ******/
+/****** Object:  StoredProcedure [dbo].[InsertVideo]    Script Date: 18/01/2020 13:50:16 ******/
 DROP PROCEDURE [dbo].[InsertVideo]
 GO
 
-/****** Object:  StoredProcedure [dbo].[InsertVideo]    Script Date: 07/01/2020 16:59:18 ******/
+/****** Object:  StoredProcedure [dbo].[InsertVideo]    Script Date: 18/01/2020 13:50:16 ******/
 SET ANSI_NULLS ON
 GO
 
 SET QUOTED_IDENTIFIER ON
 GO
+
+
 
 
 CREATE PROCEDURE [dbo].[InsertVideo] 
@@ -21,9 +23,9 @@ CREATE PROCEDURE [dbo].[InsertVideo]
 	@Url varchar(255),
 	@UrlId varchar(255),
 	@published dateTime,
-	@updated dateTime,
 	@views int,
-	@thumbnailUrl varchar(255)
+	@thumbnailUrl varchar(255),
+	@Description varchar(max)
 )
 AS
 BEGIN
@@ -42,8 +44,8 @@ declare @videoId int
 select @videoId = Id from [Video] where Title = @Title
 
 if not exists(select * from [VideoUrl] where platformId = @platformId and videoId = @videoId)
-	insert into [VideoUrl] (VideoId, UrlId, Url, PlatformId, Published, Updated, [Views], ThumbnailUrl) 
-	values (@VideoId, @UrlId, @Url, @PlatformId, @Published, @Updated, @Views, @thumbnailUrl)
+	insert into [VideoUrl] (VideoId, UrlId, Url, PlatformId, Published, [Views], ThumbnailUrl, Description) 
+	values (@VideoId, @UrlId, @Url, @PlatformId, @Published, @Views, @thumbnailUrl, @Description)
 
 END
 GO

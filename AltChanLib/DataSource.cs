@@ -15,12 +15,12 @@ namespace AltChanLib
 
         public DataSource()
         {
-            _connectionString = ConfigurationManager.AppSettings["connectionStringLive"];
+            _connectionString = ConfigurationManager.AppSettings["connectionStringLocal"];
         }
 
-        public void SaveChannel(feed channel, string platform)
+        public void SaveChannel(Channel channel)
         {
-            Console.WriteLine($"Channel: {channel.feedtitle.Value}");
+            Console.WriteLine($"Channel: {channel.Title}");
             using (var connection = new SqlConnection(_connectionString))
             {
                 try
@@ -29,37 +29,54 @@ namespace AltChanLib
                     string sql = "InsertChannel";
                     var channelCommand = new SqlCommand(sql, connection) {CommandType = CommandType.StoredProcedure};
 
-                    channelCommand.Parameters.Add("Platform", SqlDbType.VarChar).Value = platform;
-                    channelCommand.Parameters.Add("Url", SqlDbType.VarChar).Value = channel.feedlink[0].href;
-                    channelCommand.Parameters.Add("UrlId", SqlDbType.VarChar).Value = channel.feedchannelId.Value;
-                    channelCommand.Parameters.Add("Title", SqlDbType.VarChar).Value = channel.feedtitle.Value;
-                    channelCommand.Parameters.Add("Published", SqlDbType.DateTime).Value =
-                        DateTime.Parse(channel.feedpublished.Value);
+                    channelCommand.Parameters.Add("Platform", SqlDbType.VarChar).Value = channel.Platform;
+                    channelCommand.Parameters.Add("Url", SqlDbType.VarChar).Value = channel.Url;
+                    channelCommand.Parameters.Add("UrlId", SqlDbType.VarChar).Value = channel.UrlId;
+                    channelCommand.Parameters.Add("Title", SqlDbType.VarChar).Value = channel.Title;
+                    channelCommand.Parameters.Add("Published", SqlDbType.DateTime).Value = channel.Published;
+                    channelCommand.Parameters.Add("Description", SqlDbType.VarChar).Value = channel.Description;
 
-                    var channelId = channelCommand.ExecuteScalar();
+                    object channelId = 0;
+                    try
+                    {
+                        channelId = channelCommand.ExecuteScalar();
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine($"Failed to execute InsertChannel: ChannelId={channel.UrlId} {e}");
+                    }
 
-                    foreach (var video in channel.entry)
+                    int index = 0;
+                    foreach (var video in channel.Videos)
                     {
 
                         sql = "InsertVideo";
                         var videoCommand = new SqlCommand(sql, connection) {CommandType = CommandType.StoredProcedure};
 
                         videoCommand.Parameters.Add("ChannelId", SqlDbType.Int).Value = channelId;
-                        videoCommand.Parameters.Add("Title", SqlDbType.VarChar).Value = video.entrytitle.Value;
-                        videoCommand.Parameters.Add("Platform", SqlDbType.VarChar).Value = platform;
-                        videoCommand.Parameters.Add("Url", SqlDbType.VarChar).Value = video.entrylink[0].href;
-                        videoCommand.Parameters.Add("UrlId", SqlDbType.VarChar).Value = video.videoId.Value;
-                        videoCommand.Parameters.Add("Published", SqlDbType.DateTime).Value = DateTime.Parse(video.entrypublished.Value);
-                        videoCommand.Parameters.Add("Updated", SqlDbType.DateTime).Value = DateTime.Parse(video.updated.Value);
-                        videoCommand.Parameters.Add("Views", SqlDbType.VarChar).Value = video.@group.community.statistics.views;
-                        videoCommand.Parameters.Add("ThumbnailUrl", SqlDbType.VarChar).Value = video.@group.thumbnail.url;
+                        videoCommand.Parameters.Add("Title", SqlDbType.VarChar).Value = video.Title;
+                        videoCommand.Parameters.Add("Platform", SqlDbType.VarChar).Value = channel.Platform;
+                        videoCommand.Parameters.Add("Url", SqlDbType.VarChar).Value = video.Url;
+                        videoCommand.Parameters.Add("UrlId", SqlDbType.VarChar).Value = video.UrlId;
+                        videoCommand.Parameters.Add("Published", SqlDbType.DateTime).Value = video.Published;
+                        videoCommand.Parameters.Add("Views", SqlDbType.VarChar).Value = video.Views;
+                        videoCommand.Parameters.Add("ThumbnailUrl", SqlDbType.VarChar).Value = video.ThumbnailUrl;
+                        videoCommand.Parameters.Add("Description", SqlDbType.VarChar).Value = channel.Description;
 
-                        videoCommand.ExecuteNonQuery();
+                        try
+                        {
+                            videoCommand.ExecuteNonQuery();
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine($"Failed to execute InsertVideo for video {index} {video.UrlId} {e}");
+                        }
+                        index++;
                     }
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine(e);
+                    Console.WriteLine($"Failed to save channel {channel.UrlId} {e}");
                 }
                 finally
                 {
@@ -142,6 +159,43 @@ namespace AltChanLib
             }
         }
 
+        public List<string> GetChannelVideoUrls(string channelId)
+        {
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                var retVal = new List<string>();
+                try
+                {
+                    connection.Open();
+                    string sql = "select vu.Url from VideoUrl vu "
+                                 +"inner join Video v on v.id = vu.VideoId "
+                                 +"inner join channelUrl cu on cu.ChannelId = v.ChannelId "
+                                 +"where cu.urlId = '"+channelId+"'";
+                    var channelCommand = new SqlCommand(sql, connection);
+
+                    var reader = channelCommand.ExecuteReader();
+                    while (reader.Read())
+                    {
+                        var videoUrl = reader.GetString(0);
+                        retVal.Add(videoUrl);
+                    }
+                }
+                catch (Exception e)
+                {
+                    //log error
+                }
+                finally
+                {
+                    if (connection.State != ConnectionState.Closed)
+                    {
+                        connection.Close();
+                    }
+                }
+                return retVal;
+            }
+        }
+
+
         public void ClearStagedVideoUrls()
         {
             using (var connection = new SqlConnection(_connectionString))
@@ -152,7 +206,7 @@ namespace AltChanLib
                     string sql = "delete VideoUrlStaging";
                     var channelCommand = new SqlCommand(sql, connection);
 
-                    var reader = channelCommand.ExecuteNonQuery();
+                    channelCommand.ExecuteNonQuery();
                 }
                 catch (Exception e)
                 {
@@ -167,6 +221,33 @@ namespace AltChanLib
                 }
             }
         }
+
+        public void ClearStagedVideoUrl(string url)
+        {
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                try
+                {
+                    connection.Open();
+                    string sql = $"delete VideoUrlStaging where Url='{url}'";
+                    var channelCommand = new SqlCommand(sql, connection);
+
+                    channelCommand.ExecuteNonQuery();
+                }
+                catch (Exception e)
+                {
+                    //log error
+                }
+                finally
+                {
+                    if (connection.State != ConnectionState.Closed)
+                    {
+                        connection.Close();
+                    }
+                }
+            }
+        }
+
     }
 }
 

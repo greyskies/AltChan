@@ -42,6 +42,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Channel.cs" />
     <Compile Include="DataClasses\body.cs" />
     <Compile Include="DataClasses\bodyoutline.cs" />
     <Compile Include="DataClasses\community.cs" />
@@ -67,6 +68,10 @@
     <Compile Include="DataClasses\feedtitle.cs" />
     <Compile Include="DataClasses\group.cs" />
     <Compile Include="DataClasses\grouptitle.cs" />
+    <Compile Include="DataClasses\JsonChannelVideos\JsonChannelVideosClasses.cs" />
+    <Compile Include="DataClasses\JsonChannel\JsonChannelClasses.cs" />
+    <Compile Include="DataClasses\JsonVideoDetails\JsonVideoDetails.cs" />
+    <Compile Include="DataClasses\JsonVideoList\JsonVideoListClasses.cs" />
     <Compile Include="DataClasses\outlineoutline.cs" />
     <Compile Include="DataClasses\starRating.cs" />
     <Compile Include="DataClasses\statistics.cs" />
@@ -74,9 +79,11 @@
     <Compile Include="DataClasses\updated.cs" />
     <Compile Include="DataClasses\UrlOption.cs" />
     <Compile Include="DataClasses\videoId.cs" />
-    <Compile Include="DataClasses\YtApiJsonClasses.cs" />
+    <Compile Include="DataClasses\JsonVideo\JsonVideoClasses.cs" />
     <Compile Include="DataSource.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Video.cs" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

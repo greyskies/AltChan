@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace AltChanLib.DataClasses
+namespace AltChanLib.DataClasses.JsonVideo
 {
     public class PageInfo
     {

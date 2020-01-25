@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using AltChanLib.DataClasses;
+using AltChanLib.DataClasses.JsonVideo;
 using Newtonsoft.Json;
 using NUnit.Framework;
 
